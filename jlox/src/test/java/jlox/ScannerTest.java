@@ -48,7 +48,7 @@ public class ScannerTest {
     }
 
     @Test
-    public void handlesWhiteSpace() {
+    public void ignoresWhiteSpace() {
         Scanner scanner = new Scanner("+  \r\n+\t+");
         List<Token> tokens = scanner.scanTokens();
 
@@ -62,7 +62,7 @@ public class ScannerTest {
     }
 
     @Test
-    public void handlesComments() {
+    public void ignoresComments() {
         Scanner scanner = new Scanner("+//comment1+/*-}\n+-//comment2");
         List<Token> tokens = scanner.scanTokens();
 
@@ -84,6 +84,49 @@ public class ScannerTest {
 
         List<Token> expected = Arrays.asList(
                 new Token(TokenType.LEFT_PAREN, "(", null, 1),
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.EOF, "", null, 1)
+        );
+        assertThat(tokens, equalTo(expected));
+        assertThat(Lox.hadError, is(true));
+    }
+
+    @Test
+    public void handlesStrings() {
+        Scanner scanner = new Scanner("+\"stringxxxx\"+");
+        List<Token> tokens = scanner.scanTokens();
+
+        List<Token> expected = Arrays.asList(
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.STRING, "\"stringxxxx\"", "stringxxxx", 1),
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.EOF, "", null, 1)
+        );
+        assertThat(tokens, equalTo(expected));
+    }
+
+    @Test
+    public void handlesMultilineStrings() {
+        Scanner scanner = new Scanner("+\"string\nabc\nxxxx\"+");
+        List<Token> tokens = scanner.scanTokens();
+
+        List<Token> expected = Arrays.asList(
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.STRING, "\"string\nabc\nxxxx\"", "string\nabc\nxxxx", 3),
+                new Token(TokenType.PLUS, "+", null, 3),
+                new Token(TokenType.EOF, "", null, 3)
+        );
+        assertThat(tokens, equalTo(expected));
+    }
+
+    @Test
+    public void setsErrorFlagOnUnterminatedString() {
+        assertThat(Lox.hadError, is(false));
+
+        Scanner scanner = new Scanner("+\"stringxxxx");
+        List<Token> tokens = scanner.scanTokens();
+
+        List<Token> expected = Arrays.asList(
                 new Token(TokenType.PLUS, "+", null, 1),
                 new Token(TokenType.EOF, "", null, 1)
         );

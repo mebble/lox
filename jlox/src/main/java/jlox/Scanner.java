@@ -10,8 +10,8 @@ import static jlox.TokenType.*;
 class Scanner {
     private final String source;
     private final List<Token> tokens = new ArrayList<>();
-    private int start = 0;
-    private int current = 0;
+    private int start = 0;  // the first character of the lexeme being built
+    private int current = 0;  // the character after the last character of the lexeme being built
     private int line = 1;
 
     Scanner(String source) {
@@ -33,8 +33,8 @@ class Scanner {
     }
 
     private void scanToken() {
-        // this function assumes that the state is: start == current
-        char c = advance();  // advance the current's state and return it's previous state
+        // this function, (and hence all state-reading functions within it) assumes that the state is: start == current
+        char c = advance();
         switch (c) {
             case '(': addToken(LEFT_PAREN); break;
             case ')': addToken(RIGHT_PAREN); break;
@@ -64,13 +64,15 @@ class Scanner {
             case '\n':
                 line++;
                 break;
+            case '"': string(); break;
             default:
-                Lox.error(line, "Unexpected character.");
+                Lox.error(line, "Unexpected character " + c);
                 break;
         }
     }
 
     private char advance() {
+        // advance the current's state and return it's previous state
         current++;
         return source.charAt(current - 1);
     }
@@ -80,8 +82,8 @@ class Scanner {
     }
 
     private void addToken(TokenType type, Object literal) {
-        String text = source.substring(start, current);
-        tokens.add(new Token(type, text, literal, line));
+        String lexeme = source.substring(start, current);
+        tokens.add(new Token(type, lexeme, literal, line));
     }
 
     private boolean match(char expected) {
@@ -94,8 +96,25 @@ class Scanner {
     }
 
     private char peek() {
-        // lookahead
+        // lookahead; also logically, returns an infinite string of \0 after the source string
         if (isAtEnd()) return '\0';
         return source.charAt(current);
+    }
+
+    private void string() {
+        while (peek() != '"' && !isAtEnd()) {
+            if (peek() == '\n') line++;
+            advance();
+        }
+
+        if (isAtEnd()) {
+            Lox.error(line, "Unterminated string.");
+            return;
+        }
+
+        advance();
+
+        String literal = source.substring(start + 1, current - 1);
+        addToken(STRING, literal);
     }
 }
