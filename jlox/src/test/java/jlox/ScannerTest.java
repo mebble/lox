@@ -1,6 +1,7 @@
 package jlox;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -79,12 +80,13 @@ public class ScannerTest {
     public void setsErrorFlagOnUnexpectedCharacter() {
         assertThat(Lox.hadError, is(false));
 
-        Scanner scanner = new Scanner("(+&");
+        Scanner scanner = new Scanner("(+&}");
         List<Token> tokens = scanner.scanTokens();
 
         List<Token> expected = Arrays.asList(
                 new Token(TokenType.LEFT_PAREN, "(", null, 1),
                 new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.RIGHT_BRACE, "}", null, 1),
                 new Token(TokenType.EOF, "", null, 1)
         );
         assertThat(tokens, equalTo(expected));
@@ -127,6 +129,68 @@ public class ScannerTest {
         List<Token> tokens = scanner.scanTokens();
 
         List<Token> expected = Arrays.asList(
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.EOF, "", null, 1)
+        );
+        assertThat(tokens, equalTo(expected));
+        assertThat(Lox.hadError, is(true));
+    }
+
+    @Test
+    public void handlesNumberLiterals() {
+        Scanner scanner = new Scanner("+029+");
+        List<Token> tokens = scanner.scanTokens();
+
+        List<Token> expected = Arrays.asList(
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.NUMBER, "029", 29.0, 1),
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.EOF, "", null, 1)
+        );
+        assertThat(tokens, equalTo(expected));
+    }
+
+    @Test
+    public void handlesNumberLiteralsWithDecimals() {
+        Scanner scanner = new Scanner("+0100.23+");
+        List<Token> tokens = scanner.scanTokens();
+
+        List<Token> expected = Arrays.asList(
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.NUMBER, "0100.23", 100.23, 1),
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.EOF, "", null, 1)
+        );
+        assertThat(tokens, equalTo(expected));
+    }
+
+    @Test
+    @Ignore  // WIP
+    public void errorOnNumberWithLeadingDecimal() {
+        assertThat(Lox.hadError, is(false));
+
+        Scanner scanner = new Scanner("+.123+");
+        List<Token> tokens = scanner.scanTokens();
+
+        List<Token> expected = Arrays.asList(
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.EOF, "", null, 1)
+        );
+        assertThat(tokens, equalTo(expected));
+        assertThat(Lox.hadError, is(true));
+    }
+
+    @Test
+    @Ignore  // WIP
+    public void errorOnNumberWithTrailingDecimal() {
+        assertThat(Lox.hadError, is(false));
+
+        Scanner scanner = new Scanner("+123.+");
+        List<Token> tokens = scanner.scanTokens();
+
+        List<Token> expected = Arrays.asList(
+                new Token(TokenType.PLUS, "+", null, 1),
                 new Token(TokenType.PLUS, "+", null, 1),
                 new Token(TokenType.EOF, "", null, 1)
         );

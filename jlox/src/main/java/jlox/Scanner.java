@@ -28,10 +28,6 @@ class Scanner {
         return tokens;
     }
 
-    private boolean isAtEnd() {
-        return current >= source.length();
-    }
-
     private void scanToken() {
         // this function, (and hence all state-reading functions within it) assumes that the state is: start == current
         char c = advance();
@@ -66,7 +62,11 @@ class Scanner {
                 break;
             case '"': string(); break;
             default:
-                Lox.error(line, "Unexpected character " + c);
+                if (isDigit(c)) {
+                    number();
+                } else {
+                    Lox.error(line, "Unexpected character " + c);
+                }
                 break;
         }
     }
@@ -86,6 +86,10 @@ class Scanner {
         tokens.add(new Token(type, lexeme, literal, line));
     }
 
+    private boolean isAtEnd() {
+        return current >= source.length();
+    }
+
     private boolean match(char expected) {
         // like a 'conditional advance', also a lookahead
         if (isAtEnd()) return false;
@@ -101,6 +105,12 @@ class Scanner {
         return source.charAt(current);
     }
 
+    private char peekNext() {
+        // lookahead of 2; returns infinite \0 after end of source string
+        if (current + 1 >= source.length()) return '\0';
+        return source.charAt(current + 1);
+    }
+
     private void string() {
         while (peek() != '"' && !isAtEnd()) {
             if (peek() == '\n') line++;
@@ -112,9 +122,29 @@ class Scanner {
             return;
         }
 
-        advance();
+        advance();  // include the closing quote into the lexeme
 
         String literal = source.substring(start + 1, current - 1);
         addToken(STRING, literal);
+    }
+
+    private boolean isDigit(char c) {
+        return '0' <= c && c <= '9';
+    }
+
+    private void number() {
+        while (isDigit(peek())) {
+            advance();
+        }
+
+        if (peek() == '.' && isDigit(peekNext())) {
+            advance();  // include the '.' into the lexeme
+            while (isDigit(peek())) {
+                advance();
+            }
+        }
+
+        double literal = Double.parseDouble(source.substring(start, current));
+        addToken(NUMBER, literal);
     }
 }
