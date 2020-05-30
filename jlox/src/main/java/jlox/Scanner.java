@@ -14,6 +14,28 @@ class Scanner {
     private int current = 0;  // the character after the last character of the lexeme being built
     private int line = 1;
 
+    private static final Map<String, TokenType> keywords;
+
+    static {
+        keywords = new HashMap<>();
+        keywords.put("and", AND);
+        keywords.put("class", CLASS);
+        keywords.put("else", ELSE);
+        keywords.put("false", FALSE);
+        keywords.put("for",    FOR);
+        keywords.put("fun",    FUN);
+        keywords.put("if",     IF);
+        keywords.put("nil",    NIL);
+        keywords.put("or",     OR);
+        keywords.put("print",  PRINT);
+        keywords.put("return", RETURN);
+        keywords.put("super",  SUPER);
+        keywords.put("this",   THIS);
+        keywords.put("true",   TRUE);
+        keywords.put("var",    VAR);
+        keywords.put("while",  WHILE);
+    };
+
     Scanner(String source) {
         this.source = source;
     }
@@ -49,6 +71,8 @@ class Scanner {
             case '/':
                 if (match('/')) {
                     while (peek() != '\n' && !isAtEnd()) advance();
+                } else if (match('*')) {
+                    blockComment();
                 } else {
                     addToken(SLASH);
                 }
@@ -64,6 +88,8 @@ class Scanner {
             default:
                 if (isDigit(c)) {
                     number();
+                } else if (isAlphaUnderscore(c)) {
+                    identifier();
                 } else {
                     Lox.error(line, "Unexpected character " + c);
                 }
@@ -146,5 +172,43 @@ class Scanner {
 
         double literal = Double.parseDouble(source.substring(start, current));
         addToken(NUMBER, literal);
+    }
+
+    private void identifier() {
+        while (isAlphaUnderscoreNumeric(peek())) advance();
+
+        String text = source.substring(start, current);
+
+        TokenType tokenType = keywords.get(text);
+        if (tokenType == null) {
+            addToken(IDENTIFIER);
+        } else {
+            addToken(tokenType);
+        }
+    }
+
+    private void blockComment() {
+        while (true) {
+            if (isAtEnd() || (peek() == '*' && peekNext() == '/')) {
+                break;
+            }
+            if (peek() == '\n') line++;
+            advance();
+        }
+
+        if (isAtEnd()) {
+            Lox.error(line, "Unterminated block comment.");
+        } else {
+            advance();  // consume the '*'
+            advance();  // consume the '/'
+        }
+    }
+
+    private boolean isAlphaUnderscore(char c) {
+        return (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || c == '_');
+    }
+
+    private boolean isAlphaUnderscoreNumeric(char c) {
+        return isAlphaUnderscore(c) || isDigit(c);
     }
 }
